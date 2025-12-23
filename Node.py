@@ -1,11 +1,11 @@
 class Node:
     def __init__(self, comp = None, res_class = None):
         self.comp = comp
-        self.true_child = None
-        self.false_child = None
+        self.true_child : Node = None
+        self.false_child : Node = None
         self.res_class = res_class
 
-    def classifie(self, measurement):
+    def classifie(self, measurement) -> "Node":
         if self.comp(measurement):
             return self.true_child
         else:
