@@ -62,6 +62,7 @@ class ClasificationTree:
                 continue
 
             trainData.node.comp = conditionInfo.condition
+            trainData.node.cond = conditionInfo.cond_txt
             trainData.node.true_child = Node(res_class=conditionInfo.true_label)
             trainData.node.false_child = Node(res_class=conditionInfo.false_label)
 
@@ -70,7 +71,7 @@ class ClasificationTree:
             false_child_mask = np.logical_not(true_child_mask)
             queue.put(self.TrainData(trainData.node.false_child, trainData.x_sub_df[false_child_mask], trainData.y_sub[false_child_mask]))
 
-
+            trainData.node.res_class = f"{trainData.node.res_class} T:{np.sum(true_child_mask)} F:{np.sum(false_child_mask)}"
 
 
 
@@ -111,6 +112,11 @@ class ClasificationTree:
         if ( true_counts.size == 0 ) or ( false_counts.size == 0 ):
             return SplitInfo(impurity = float_info.max)
 
+        true_label = true_unique[np.argmax(true_counts)]
+        false_label = false_unique[np.argmax(false_counts)]
+        if ( true_label == false_label ):
+            return SplitInfo(impurity = float_info.max)
+
         # takto lebo broadcasting a inak by mi uz tak trvalo moc dloho
         helper = 0
         for i in true_counts:
@@ -124,7 +130,7 @@ class ClasificationTree:
 
         impurity = self.impuruty(counts)
 
-        splitInfo = SplitInfo(condition=(lambda df: df[colIndex]), impurity=impurity, true_label=true_unique[np.argmax(true_counts)], false_label=false_unique[np.argmax(false_counts)])
+        splitInfo = SplitInfo(condition=(lambda df: df[colIndex]), impurity=impurity, true_label=true_label, false_label=false_label)
         return splitInfo
 
 
@@ -149,7 +155,8 @@ class ClasificationTree:
 
             if(cur_condition.impurity < best_condition.impurity):
                 best_condition = cur_condition
-                best_condition.condition = lambda df: df[colIndex] < i
+                h=i #WTF this caused so much painnnn
+                best_condition.condition = lambda df: df[colIndex] < h
                 best_condition.cond_txt = f"< {i}"
 
         return best_condition

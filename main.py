@@ -41,6 +41,16 @@ d = {"LovesPopcorn":[True, True, False, False, True, True, False],
 x = pd.DataFrame.from_dict(d)
 y = pd.Series([False, False, True, True, True, False, False])
 
+iTst = x[x.to_numpy().T[1]]
+print (iTst)
+i = 12.5
+fun = lambda df : df[2] < i
+iTst = iTst[fun(iTst.to_numpy().T)]
+print (iTst)
+i=35.5
+iTst = iTst[fun(iTst.to_numpy().T)]
+print (iTst)
+
 cTree = ClasificationTree()
 
 testCounts = np.zeros([2,2])
