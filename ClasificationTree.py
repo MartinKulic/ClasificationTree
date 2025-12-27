@@ -17,12 +17,15 @@ class SplitInfo:
     condition: Callable[..., bool]
     impurity: float
 
+    cond_txt : str
+
     def __init__(self, condition: Callable[..., bool] = None, impurity: float = None, true_label=None,
-                 false_label=None):
+                 false_label=None, text:str = ""):
         self.condition = condition
         self.impurity = impurity
         self.true_label = true_label
         self.false_label = false_label
+        self.cond_txt = text
 
 class ClasificationTree:
 
@@ -46,7 +49,8 @@ class ClasificationTree:
         queue = Queue()
         queue.put(self.TrainData(self.root, X, y))
 
-        while(queue.not_empty):
+        while(not queue.empty()):
+
             trainData = queue.get()
 
             if trainData.x_sub_df.size < 3:
@@ -54,16 +58,18 @@ class ClasificationTree:
 
             conditionInfo = self.findBestCondition(trainData.x_sub_df, trainData.y_sub)
 
+            if (conditionInfo.condition is None):
+                continue
+
             trainData.node.comp = conditionInfo.condition
             trainData.node.true_child = Node(res_class=conditionInfo.true_label)
             trainData.node.false_child = Node(res_class=conditionInfo.false_label)
 
-            true_child_mask = conditionInfo.condition(X)
+            true_child_mask = conditionInfo.condition(trainData.x_sub_df.to_numpy().T)
             queue.put(self.TrainData(trainData.node.true_child, trainData.x_sub_df[true_child_mask], trainData.y_sub[true_child_mask]))
-            false_child_mask = ~true_child_mask
+            false_child_mask = np.logical_not(true_child_mask)
             queue.put(self.TrainData(trainData.node.false_child, trainData.x_sub_df[false_child_mask], trainData.y_sub[false_child_mask]))
 
-            pass
 
 
 
@@ -84,18 +90,17 @@ class ClasificationTree:
 
             if(cur_condition.impurity < best_condition.impurity):
                 best_condition = cur_condition
+                best_condition.cond_txt = f"{x.columns[i] }: {best_condition.cond_txt}"
 
         return best_condition
 
-    '''
-        :return comparator, impurity, class
-    '''
+
     def findBestConditionBoolean(self, colIndex, x, y) -> SplitInfo:
 
         counts = np.zeros([2, self.classes.size])
 
         true_mask = x
-        false_mask = ~true_mask
+        false_mask = np.logical_not(true_mask)
 
         true_labels = y[true_mask]
         false_labels = y[false_mask]
@@ -103,6 +108,8 @@ class ClasificationTree:
         true_unique, true_counts = np.unique(true_labels, return_counts=True)
         false_unique, false_counts = np.unique(false_labels, return_counts=True)
 
+        if ( true_counts.size == 0 ) or ( false_counts.size == 0 ):
+            return SplitInfo(impurity = float_info.max)
 
         # takto lebo broadcasting a inak by mi uz tak trvalo moc dloho
         helper = 0
@@ -122,13 +129,12 @@ class ClasificationTree:
 
 
 
-    '''
-    :return comparator and impurity 
-    '''
+
     def findBestConditionNumeric(self, colIndex, x, y) -> (Callable[[...], bool] , float):
 
         if (np.unique(y).size < 2):
-            raise Exception(f"Cannot find split for {colIndex} - num of unique values is less than 2")
+            return SplitInfo(impurity = float_info.max)
+            #raise Exception(f"Cannot find split for {colIndex} - num of unique values is less than 2")
 
         sorted_x = np.sort(x)
         borders_x = []
@@ -144,6 +150,7 @@ class ClasificationTree:
             if(cur_condition.impurity < best_condition.impurity):
                 best_condition = cur_condition
                 best_condition.condition = lambda df: df[colIndex] < i
+                best_condition.cond_txt = f"< {i}"
 
         return best_condition
 
@@ -192,4 +199,41 @@ class ClasificationTree:
 
         x_encoded = pd.get_dummies(raw_x, columns=non_numeric_cols, drop_first=False)
         return x_encoded
+
+    '''
+    From https://www.geeksforgeeks.org/dsa/level-order-tree-traversal/
+    '''
+    def levelOrder(self, root : Node):
+        if root is None:
+            return []
+
+        # Create an empty queue for level order traversal
+        q = []
+        res = []
+
+        # Enqueue Root
+        q.append(root)
+        curr_level = 0
+
+        while q:
+            len_q = len(q)
+            res.append([])
+
+            for _ in range(len_q):
+                # Add front of queue and remove it from queue
+                node = q.pop(0)
+                res[curr_level].append(node)
+
+                # Enqueue left child
+                if node.true_child is not None:
+                    q.append(node.true_child)
+
+                # Enqueue right child
+                if node.false_child is not None:
+                    q.append(node.false_child)
+            curr_level += 1
+        return res
+
+
+
 

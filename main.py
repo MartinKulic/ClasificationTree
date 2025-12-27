@@ -52,13 +52,26 @@ testCounts[1,1] = 3
 
 print (cTree.impuruty(testCounts))
 
-si = SplitInfo(condition=lambda x: x[3], impurity=0.0)
-c = [0,1,2,3,4,5]
-print(si.condition(c))
+si = SplitInfo(condition=lambda x: x[1]<3 , impurity=0.0)
+c = [[0,1,2,3,4,5],
+     [1,2,3,4,5,6],
+     [2,3,4,5,6,7],
+     [3,4,5,6,7,8], ]
+c = np.array(c)
+mask = si.condition(c.T)
+print(c[mask])
 
+test = np.array([0,0,0])
+print(np.argmax(test))
 
 x = ClasificationTree.prepareX(x)
 cTree.fit(x, y)
+
+res = cTree.levelOrder(cTree.root)
+for level in res:
+    for val in level:
+        print(val, end=' ')
+    print()
 
 
 
