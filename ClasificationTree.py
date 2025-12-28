@@ -39,12 +39,12 @@ class ClasificationTree:
     def __init__(self):
         self.root : Node = Node()
 
+
     def fit(self, X : pd.DataFrame, y : np.array):
-        self.atributes = X  # data
-        self.labels = y  # truths
+        # self.atributes = X  # data
+        # self.labels = y  # truths
 
         self.classes = np.sort(np.unique(y))
-
 
         queue = Queue()
         queue.put(self.TrainData(self.root, X, y))

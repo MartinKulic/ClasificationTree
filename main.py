@@ -1,93 +1,47 @@
-from xml.etree.ElementPath import xpath_tokenizer_re
-
 import numpy as np
-
-from ClasificationTree import ClasificationTree, SplitInfo
-from Node import Node
 import pandas as pd
-
-x = [10, True, False]
-
-tTree = ClasificationTree()
-tTree.root = Node(lambda v : v[0] < 50)
-
-tTree.root.true_child = Node(lambda v : v[1], "les then 50")
-tTree.root.false_child = Node(lambda v : v[1], "more then 50")
-
-tTree.root.true_child.true_child = Node(None, "les then 50 and true")
-tTree.root.true_child.false_child = Node(lambda v : v[2], "les then 50 and false")
-
-vys = tTree.predict(x)
-
-print(vys)
-
+from ClasificationTree import ClasificationTree
 
 raw = pd.read_csv('data.csv')
 print(raw.isna().sum())
 
-# NEZABUDNI ROZDELIT NA TEST A TRAIN
+#ROZDELIT NA TEST A TRAIN
+train=raw.sample(frac=0.8,random_state=200)
+test=raw.drop(train.index)
 
-y = raw["price_class"]
-x_raw = raw.drop(columns=["price_class"])
+y_test = test["price_class"]
+x_test = ClasificationTree.prepareX(test.drop(columns=["price_class"]))
 
-x = ClasificationTree.prepareX(x_raw)
+y_train = train["price_class"]
+x_train_raw = train.drop(columns=["price_class"])
 
-# TEST EXAMPLE
+x_train = ClasificationTree.prepareX(x_train_raw)
 
-
-d = {"LovesPopcorn":[True, True, False, False, True, True, False],
-     "LovesSoda":[True, False, True, True, True, False, False],
-     "Age":[7,12,18,35,38,50,83]}
-x = pd.DataFrame.from_dict(d)
-y = pd.Series([False, False, True, True, True, False, False])
-
-iTst = x[x.to_numpy().T[1]]
-print (iTst)
-i = 12.5
-fun = lambda df : df[2] < i
-iTst = iTst[fun(iTst.to_numpy().T)]
-print (iTst)
-i=35.5
-iTst = iTst[fun(iTst.to_numpy().T)]
-print (iTst)
 
 cTree = ClasificationTree()
+print("Training", end="")
+cTree.fit(x_train, y_train)
+print(" DONE")
 
-testCounts = np.zeros([2,2])
+confusion_matrix = np.zeros([3,3])
+class_map = {}
+for ind, clas in enumerate(cTree.classes):
+    class_map[clas] = ind
+print("Testing", end="")
+for x_t,y_t in zip(x_test.to_numpy(), y_test.to_numpy()):
+    pred_y = cTree.predict(x_t)
+    confusion_matrix[class_map[y_t],class_map[pred_y]] += 1
+print(" DONE")
+print(confusion_matrix)
 
-testCounts[0,0] = 3
-testCounts[0,1] = 1
-testCounts[1,0] = 0
-testCounts[1,1] = 3
+from sklearn.tree import DecisionTreeClassifier
 
-print (cTree.impuruty(testCounts))
+clf = DecisionTreeClassifier()
+clf.fit(x_train.to_numpy(), y_train.to_numpy())
 
-si = SplitInfo(condition=lambda x: x[1]<3 , impurity=0.0)
-c = [[0,1,2,3,4,5],
-     [1,2,3,4,5,6],
-     [2,3,4,5,6,7],
-     [3,4,5,6,7,8], ]
-c = np.array(c)
-mask = si.condition(c.T)
-print(c[mask])
-
-test = np.array([0,0,0])
-print(np.argmax(test))
-
-x = ClasificationTree.prepareX(x)
-cTree.fit(x, y)
-
-res = cTree.levelOrder(cTree.root)
-for level in res:
-    for val in level:
-        print(val, end=' ')
-    print()
-
-
-
-
-
-
-
-
+confusion_matrix_sklearn = np.zeros([3,3])
+for x_t,y_t in zip(x_test.to_numpy(), y_test.to_numpy()):
+    pred_y = clf.predict(x_t.reshape(1, -1))
+    confusion_matrix_sklearn[class_map[y_t],class_map[pred_y[0]]] += 1
+print(confusion_matrix_sklearn)
 

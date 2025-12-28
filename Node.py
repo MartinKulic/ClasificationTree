@@ -5,7 +5,7 @@ class Node:
         self.false_child : Node = None
         self.res_class = res_class
 
-        self.cond = cond
+        self.cond : str = cond
 
     def classifie(self, measurement) -> "Node":
         if self.comp(measurement):
