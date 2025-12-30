@@ -6,6 +6,8 @@ from threading import Lock
 
 import numpy as np
 import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.ensemble import BaggingClassifier
 
 import lib
 from BaggingClasificationTree import BagingClasificationTree
@@ -33,7 +35,7 @@ def doCompare(rs, lck:Lock, fil, iter):
     x_train = ClasificationTree.prepareX(x_train_raw)
 
     # My tree
-    cTree = BagingClasificationTree(50)
+    cTree = BagingClasificationTree(25)
     #cTree = ClasificationTree()
     print("Training", end="")
     cTree.fit(x_train, y_train.to_numpy())
@@ -56,7 +58,7 @@ def doCompare(rs, lck:Lock, fil, iter):
     print(my_acc, my_avg_recall, my_abg_precision, my_avg_f1)
 
     # Scikit tree
-    clf = DecisionTreeClassifier(splitter="best")
+    clf = BaggingClassifier(estimator=DecisionTreeClassifier(), n_estimators=25)
     clf.fit(x_train.to_numpy(), y_train.to_numpy())
 
     confusion_matrix_sklearn = np.zeros([3,3])
