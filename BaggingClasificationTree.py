@@ -1,5 +1,5 @@
 from _thread import lock
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from threading import Lock
 from typing import Any
 
@@ -21,21 +21,25 @@ class BagingClasificationTree:
 
     def fit(self, X:pd.DataFrame, y: np.ndarray):
         self.classes = np.sort(np.unique(y))
-
+        mutex = Lock()
         with ThreadPoolExecutor(max_workers=10) as executor:
             for tree in self.tree:
-                executor.submit(self.fit_task, tree, X, y) #self.fit_task(tree, X, y)
+                executor.submit(self.fit_task, tree, X, y, mutex) #self.fit_task(tree, X, y)
 
-    def fit_task(self, tree: ClasificationTree, X: DataFrame, y: ndarray[tuple[Any, ...], dtype[Any]]):
-        this_X = [None] * X.shape[0]
-        this_y = [None] * X.shape[0]
+    def fit_task(self, tree: ClasificationTree, X: DataFrame, y: ndarray, mutex: lock):
+        #this_X = [None] * X.shape[0]
+        #this_y = [None] * X.shape[0]
         # vyber s opakovanim z X,y
-        for i in range(X.shape[0]):
-            rand_idx = np.random.randint(X.shape[0])
-            this_X[i] = X.iloc[rand_idx, :]
-            this_y[i] = y[rand_idx]
+        #for i in range(X.shape[0]):
+            # rand_idx = np.random.randint(X.shape[0])
+            # this_X[i] = X.iloc[rand_idx, :]
+            # this_y[i] = y[rand_idx]
+        with mutex:
+            indices = np.random.randint(0, X.shape[0], size=X.shape[0])
+        this_X_df = pd.DataFrame(X.iloc[indices])
+        this_y = y[indices]
 
-        this_X_df = pd.DataFrame(this_X, columns=X.columns)
+        #this_X_df = pd.DataFrame(this_X, columns=X.columns)
         tree.fit(this_X_df, np.array(this_y))
 
     def predict(self, X):
