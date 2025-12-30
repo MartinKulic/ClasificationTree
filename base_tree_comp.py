@@ -1,5 +1,3 @@
-import csv
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from random import Random
 from threading import Lock
@@ -8,7 +6,6 @@ import numpy as np
 import pandas as pd
 
 import lib
-from BaggingClasificationTree import BagingClasificationTree
 from ClasificationTree import ClasificationTree
 
 from sklearn.tree import DecisionTreeClassifier
@@ -33,11 +30,10 @@ def doCompare(rs, lck:Lock, fil, iter):
     x_train = ClasificationTree.prepareX(x_train_raw)
 
     # My tree
-    cTree = BagingClasificationTree(50)
-    #cTree = ClasificationTree()
-    print("Training", end="")
-    cTree.fit(x_train, y_train.to_numpy())
-    print(" DONE")
+    cTree = ClasificationTree()
+    #print("Training", end="")
+    cTree.fit(x_train, y_train)
+    #print(" DONE")
 
     confusion_matrix = np.zeros([3,3])
     class_map = {}
@@ -48,12 +44,11 @@ def doCompare(rs, lck:Lock, fil, iter):
     for x_t,y_t in zip(x_test.to_numpy(), y_test.to_numpy()):
         pred_y = cTree.predict(x_t)
         confusion_matrix[class_map[y_t],class_map[pred_y]] += 1
-    print(f" DONE {iter}")
-    print(cTree.classes)
+    #print(f" DONE {iter}")
+    #print(cTree.classes)
     print(confusion_matrix)
     my_acc = lib.calculate_accuracy(confusion_matrix)
     _,_,_, my_avg_recall, my_abg_precision, my_avg_f1 = lib.calculate_clasewise_metrics(confusion_matrix)
-    print(my_acc, my_avg_recall, my_abg_precision, my_avg_f1)
 
     # Scikit tree
     clf = DecisionTreeClassifier(splitter="best")
@@ -66,11 +61,10 @@ def doCompare(rs, lck:Lock, fil, iter):
     print(confusion_matrix_sklearn)
     scikit_acc = lib.calculate_accuracy(confusion_matrix_sklearn)
     _,_,_, scikit_avg_recall, scikit_avg_precision, scikit_avg_f1 = lib.calculate_clasewise_metrics(confusion_matrix_sklearn)
-    print(scikit_acc, scikit_avg_recall, scikit_avg_precision, scikit_avg_f1)
 
     out_list = [rs, my_acc, my_avg_recall, my_abg_precision, my_avg_f1, scikit_acc, scikit_avg_recall, scikit_avg_precision, scikit_avg_f1]
-    # with lck:
-    #     write_to_file(out_list, fil)
+    with lck:
+        write_to_file(out_list, fil)
     print(f" DONE {iter}")
     return
 
@@ -86,20 +80,15 @@ def write_to_file(dta, fle):
 
 
 
+out_list = []
+threads = []
 lock = Lock()
 random = Random()
 
 fil = open("out.csv", 'a')
-fil.close()
-# fil.write(";My;;;;;Scikit;;;;;\n"
-#             "seed;Accuracy;Average_recall;Average_precision;Average_f1;;Accuracy;Average_recall;Average_precision;Average_f1;\n")
-#
-# with ThreadPoolExecutor(max_workers=20) as executor:
-#     for i in range(2000):
-#         executor.submit(doCompare, i, lock, fil, i)
+fil.write(";My;;;;;Scikit;;;;;\n"
+            "seed;Accuracy;Average_recall;Average_precision;Average_f1;;Accuracy;Average_recall;Average_precision;Average_f1;\n")
 
-
-doCompare(200, lock, fil, 1)
-
-
-
+with ThreadPoolExecutor(max_workers=20) as executor:
+    for i in range(1):
+        executor.submit(doCompare, i, lock, fil, i)

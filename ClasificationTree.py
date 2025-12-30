@@ -40,7 +40,7 @@ class ClasificationTree:
         self.root : Node = Node()
 
 
-    def fit(self, X : pd.DataFrame, y : np.array):
+    def fit(self, X : pd.DataFrame, y : np.ndarray):
         # self.atributes = X  # data
         # self.labels = y  # truths
 
@@ -75,6 +75,7 @@ class ClasificationTree:
 
 
 
+
     def findBestCondition(self, x : pd.DataFrame, y) -> SplitInfo:
 
         best_condition = SplitInfo(impurity = float_info.max)
@@ -100,7 +101,7 @@ class ClasificationTree:
 
         counts = np.zeros([2, self.classes.size])
 
-        true_mask = x
+        true_mask = x#.to_numpy()
         false_mask = np.logical_not(true_mask)
 
         true_labels = y[true_mask]
@@ -130,7 +131,7 @@ class ClasificationTree:
 
         impurity = self.impuruty(counts)
 
-        splitInfo = SplitInfo(condition=(lambda df: df[colIndex]), impurity=impurity, true_label=true_label, false_label=false_label)
+        splitInfo = SplitInfo(condition=(lambda df: df[colIndex] == True), impurity=impurity, true_label=true_label, false_label=false_label)
         return splitInfo
 
 
@@ -202,7 +203,7 @@ class ClasificationTree:
     @staticmethod
     def prepareX(raw_x: pd.DataFrame) -> pd.DataFrame:
         non_numeric_cols = raw_x.select_dtypes(include=["object"]).columns
-        print(non_numeric_cols)
+        #print(non_numeric_cols)
 
         x_encoded = pd.get_dummies(raw_x, columns=non_numeric_cols, drop_first=False)
         return x_encoded
