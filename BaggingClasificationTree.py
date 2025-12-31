@@ -1,5 +1,6 @@
 from _thread import lock
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures.thread import ThreadPoolExecutor
+
 from threading import Lock
 from typing import Any
 
@@ -24,7 +25,9 @@ class BagingClasificationTree:
         mutex = Lock()
         with ThreadPoolExecutor(max_workers=10) as executor:
             for tree in self.tree:
-                executor.submit(self.fit_task, tree, X, y, mutex) #self.fit_task(tree, X, y)
+                executor.submit(self.fit_task, tree, X, y, mutex)
+        # for tree in self.tree:
+        #     self.fit_task(tree, X, y, mutex)
 
     def fit_task(self, tree: ClasificationTree, X: DataFrame, y: ndarray, mutex: lock):
         #this_X = [None] * X.shape[0]
@@ -48,7 +51,9 @@ class BagingClasificationTree:
 
         with ThreadPoolExecutor(max_workers=10) as executor:
             for tree in self.tree:
-                executor.submit(self.method_name, tree, X, predictions, mutex)#self.method_name(tree, X, predictions, mutex)
+                executor.submit(self.method_name, tree, X, predictions, mutex)
+        # for tree in self.tree:
+        #     self.method_name(tree, X, predictions, mutex)
 
         values, counts = np.unique(predictions, return_counts=True)
         return values[np.argmax(counts)]
