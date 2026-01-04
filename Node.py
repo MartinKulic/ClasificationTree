@@ -17,4 +17,4 @@ class Node:
         return (self.comp is not None) and ((self.true_child is not None) or (self.false_child is not None))
 
     def __str__(self):
-        return f"<| {self.cond} = {self.res_class}|>"
+        return f"<| {self.cond} = {self.res_class}|>" if self.hasNext() else f" =>{self.res_class}"

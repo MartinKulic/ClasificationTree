@@ -4,16 +4,15 @@ from threading import Lock
 
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import BaggingClassifier
 
 import lib
+from BaggingClasificationTree import BagingClasificationTree
 from ClasificationTree import ClasificationTree
 
 from sklearn.tree import DecisionTreeClassifier
 
-
-raw = pd.read_csv('data.csv')
-print(raw.isna().sum())
-
+raw = pd.read_csv('../data.csv')
 
 def doCompare(rs, lck:Lock, fil, iter):
     print(f"Doing {iter}")
@@ -30,9 +29,9 @@ def doCompare(rs, lck:Lock, fil, iter):
     x_train = ClasificationTree.prepareX(x_train_raw)
 
     # My tree
-    cTree = ClasificationTree()
+    cTree = BagingClasificationTree(NTree)
     #print("Training", end="")
-    cTree.fit(x_train, y_train)
+    cTree.fit(x_train, y_train.to_numpy())
     #print(" DONE")
 
     confusion_matrix = np.zeros([3,3])
@@ -51,13 +50,14 @@ def doCompare(rs, lck:Lock, fil, iter):
     _,_,_, my_avg_recall, my_abg_precision, my_avg_f1 = lib.calculate_clasewise_metrics(confusion_matrix)
 
     # Scikit tree
-    clf = DecisionTreeClassifier(splitter="best")
-    clf.fit(x_train.to_numpy(), y_train.to_numpy())
+    clf = BaggingClassifier(estimator=DecisionTreeClassifier(), n_estimators=NTree)
+    clf.fit(x_train, y_train.to_numpy())
 
     confusion_matrix_sklearn = np.zeros([3,3])
-    for x_t,y_t in zip(x_test.to_numpy(), y_test.to_numpy()):
-        pred_y = clf.predict(x_t.reshape(1, -1))
-        confusion_matrix_sklearn[class_map[y_t],class_map[pred_y[0]]] += 1
+    predictions = clf.predict(x_test)
+    for pred_y, y_t in zip(predictions, y_test.to_numpy()):
+        confusion_matrix_sklearn[class_map[y_t], class_map[pred_y]] += 1
+
     print(confusion_matrix_sklearn)
     scikit_acc = lib.calculate_accuracy(confusion_matrix_sklearn)
     _,_,_, scikit_avg_recall, scikit_avg_precision, scikit_avg_f1 = lib.calculate_clasewise_metrics(confusion_matrix_sklearn)
@@ -84,11 +84,15 @@ out_list = []
 threads = []
 lock = Lock()
 random = Random()
+NTree = 25
 
-fil = open("out.csv", 'a')
+fil = open("../out.csv", 'a')
 fil.write(";My;;;;;Scikit;;;;;\n"
             "seed;Accuracy;Average_recall;Average_precision;Average_f1;;Accuracy;Average_recall;Average_precision;Average_f1;\n")
 
-with ThreadPoolExecutor(max_workers=20) as executor:
-    for i in range(1):
-        executor.submit(doCompare, i, lock, fil, i)
+with ThreadPoolExecutor(max_workers=10) as executor:
+    for i in range(5000):
+        executor.submit(doCompare, random.randint(0,9999999), lock, fil, i)
+
+# for i in range(2):
+#         doCompare(i, lock, fil, i)

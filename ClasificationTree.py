@@ -242,6 +242,19 @@ class ClasificationTree:
             curr_level += 1
         return res
 
+    def print_tree(self, node, indent="", is_true_branch=True):
+        if node is None:
+            return
+
+        branch = "└── " if is_true_branch else "├── "
+        print(indent + branch + str(node))
+
+        indent += "    " if is_true_branch else "│   "
+
+        if node.true_child or node.false_child:
+            self.print_tree(node.true_child, indent, False)
+            self.print_tree(node.false_child, indent, True)
+
 
 
 
